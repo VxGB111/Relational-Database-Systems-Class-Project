@@ -1,0 +1,650 @@
+REM ******************************************************************
+REM  File:        SBarclayDBST_LabProjectPart3.txt
+REM  Description: Used for creating the objects and loading data
+REM               into the SBARCLAY schema
+REM  Created:     S Barclay October 18, 2013
+REM  Modified     November 9, 2013
+REM  Version:     1.7
+REM ******************************************************************
+REM ******************************************************************
+REM   Section 8
+REM   Drop objects so that the program can be run again for verification 
+REM   that code works
+SET ECHO OFF
+
+PROMPT Dropping tables.
+DROP TABLE PROJECT;
+DROP TABLE CLIENT;
+DROP TABLE PRODUCT;
+DROP TABLE PRODUCTION_LOT;
+DROP TABLE MATERIALS;
+DROP TABLE SUPPLIERS;
+PROMPT Dropping trigger sequence.
+DROP SEQUENCE  material_use_seq;
+PROMPT Dropping views.
+DROP VIEW client_contact;
+DROP VIEW supplier_summary;
+SET ECHO ON
+REM*****************************************************************
+REM*****************************************************************
+REM   Section 1
+REM   Create Tables
+REM ******************************************************************
+REM   Section 1.a
+PROMPT Creating Table 'CLIENT'
+CREATE TABLE CLIENT
+ (CLIENT_ID NUMBER(8,0) NOT NULL
+ ,CLIENT_NAME VARCHAR2(100)
+ ,CLIENT_GROUP VARCHAR2(25)
+ ,STREET_ADDRESS VARCHAR2(50)
+ ,ZIP VARCHAR2(5)
+ ,PHONE VARCHAR2(15) 
+ )
+/
+COMMENT ON TABLE CLIENT IS 'Client information for project management uses.'
+/
+
+COMMENT ON COLUMN CLIENT.CLIENT_ID IS 'The unique ID for an client.'
+/
+
+COMMENT ON COLUMN CLIENT.CLIENT_NAME IS 'Organization name of client, such as Merck, Eli Lilly etc'
+/
+
+COMMENT ON COLUMN CLIENT.CLIENT_GROUP IS 'Specific group within the client organization such as Phoenix lab.'
+/
+
+COMMENT ON COLUMN CLIENT.STREET_ADDRESS IS 'The clients street address.'
+/
+
+COMMENT ON COLUMN CLIENT.ZIP IS 'The postal zip code for this client.'
+/
+
+COMMENT ON COLUMN CLIENT.PHONE IS 'The phone number for this client including area code.'
+/
+REM ******************************************************************
+REM   Section 1.b
+PROMPT Creating Table 'PROJECT'
+CREATE TABLE PROJECT
+ (CONTRACT_NO NUMBER(8,0) NOT NULL
+,CLIENT_ID NUMBER(8,0) NOT NULL 
+ ,PROJECT_MANAGER VARCHAR2(30) 
+ ,GMP_PROJECT_NO NUMBER(4) DEFAULT 0
+ ,PROCESS_TYPE NUMBER(2) DEFAULT 0
+ ,PROCESS_INFO VARCHAR2(2000)
+,PROJECT_OPEN_DATE DATE 
+ ,PROJECT_COMPLETION_DATE DATE 
+ )
+/
+COMMENT ON TABLE PROJECT IS 'The information relevant to each project.'
+/
+COMMENT ON COLUMN PROJECT.CONTRACT_NO IS 'The unique ID for the project.'
+/
+COMMENT ON COLUMN PROJECT.PROJECT_MANAGER IS 'The manager in charge of this project.'
+/
+COMMENT ON COLUMN PROJECT. GMP_PROJECT_NO  IS 'The number assigned to this gmp project. 0 if na.'
+/
+COMMENT ON COLUMN PROJECT.GMP_PROJECT_NO IS 'The code which identifies a GMP process.'
+/
+COMMENT ON COLUMN PROJECT.PROCESS_TYPE IS 'The number assigned to different process types. Upstream 1x, downstream 2x, analytics 3x, viral 4x, production x1, process development x2, etc. See documentation for full list. For undefined processes enter 99.'
+/
+COMMENT ON COLUMN PROJECT.PROCESS_INFO IS 'Information describing process for users.'
+/ 
+ COMMENT ON COLUMN PROJECT.PROJECT_OPEN_DATE IS 'Date that project is initiated.'
+/
+COMMENT ON COLUMN PROJECT.PROJECT_COMPLETION_DATE IS 'Date project is required to be completed.'
+/
+REM ******************************************************************
+REM   Section 1.c
+PROMPT Creating Table 'PRODUCT'
+CREATE TABLE PRODUCT
+ (PRODUCT_ID NUMBER(8,0) NOT NULL
+,CONTRACT_NO NUMBER(8,0) NOT NULL
+ ,CELL_TYPE VARCHAR2(50) 
+ ,MEDIA_TYPE VARCHAR2(30) 
+ ,ANTIBODY_TAGS VARCHAR2(30)
+ ,PRODUCT_DESCRIPTION VARCHAR2(500)
+ )
+/
+COMMENT ON TABLE PRODUCT IS 'Specific information for a particular product.'
+/
+COMMENT ON COLUMN PRODUCT.PRODUCT_ID IS 'The unique code which identifies a specific product.'
+/
+COMMENT ON COLUMN PRODUCT.CELL_TYPE IS 'Client-specified cell type for the project.'
+/
+COMMENT ON COLUMN PRODUCT.MEDIA_TYPE IS 'Client-specified media type for the project.'
+/
+COMMENT ON COLUMN PRODUCT.ANTIBODY_TAGS IS 'Antibody tags on protein product.'
+/
+COMMENT ON COLUMN PRODUCT.PRODUCT_DESCRIPTION IS 'Short description of the project.'
+/
+REM ******************************************************************
+REM   Section 1.d
+PROMPT Creating Table 'PRODUCTION_LOT'
+CREATE TABLE PRODUCTION_LOT
+ (PROD_LOT_NO VARCHAR2(10) NOT NULL
+,PRODUCT_ID NUMBER(8,0) NOT NULL
+,PROD_INFO VARCHAR2(500) 
+,PROD_BEGAN DATE 
+ ,PROD_COMPLETED DATE 
+ ,NAO_USE VARCHAR2(1) DEFAULT 0
+ )
+/
+
+COMMENT ON TABLE PRODUCTION_LOT IS 'Contains particulars of a single production lot.'
+/
+COMMENT ON COLUMN PRODUCTION_LOT.PROD_LOT_NO IS 'The unique set of numbers and symbols that are assigned to a production lot (11-13-213, etc.).'
+/
+COMMENT ON COLUMN PRODUCTION_LOT. PRODUCT_ID IS 'For foreign key from product table.'
+/
+COMMENT ON COLUMN PRODUCTION_LOT.PROD_INFO IS 'Describes the type of production (eg continuous fed-batch in superbroth).'
+/
+COMMENT ON COLUMN PRODUCTION_LOT.PROD_BEGAN IS 'indicates date the production lot began.'
+/
+COMMENT ON COLUMN PRODUCTION_LOT.PROD_COMPLETED IS 'Date production lot completed.'
+/
+COMMENT ON COLUMN PRODUCTION_LOT.NAO_USE IS 'Indicates whether or not the process used animal free components. 1, yes. 0,no.'
+/
+REM ******************************************************************
+REM   Section 1.e
+PROMPT Creating Table 'MATERIALS'
+CREATE TABLE MATERIALS
+ (MATERIAL_USE_NO NUMBER(10) NOT NULL
+,MATERIAL_NAME VARCHAR2(50) NOT NULL
+,PROD_LOT_NO VARCHAR2(10) NOT NULL
+,MANUFACTURER VARCHAR2(50)
+,MANUFACTURER_CODE VARCHAR2(100)
+,SUPPLIER_NAME VARCHAR2(50) NOT NULL
+,MATERIAL_TYPE VARCHAR2(50) 
+ ,GMP_QUALIFIED VARCHAR2(5) 
+ ,NAO VARCHAR2(10) 
+ ,CLIENT_PROVIDED VARCHAR2(3) 
+ ,RECIPE VARCHAR2(2000) 
+ ,RESEARCH_CELL_BANK VARCHAR2(30) 
+  )
+/
+COMMENT ON TABLE MATERIALS IS 'Information on materials used in production. Ideally, this table should be broken down into multiple, however it was suggested when I got my ERD approved that I combine the broken down versions into one table. Therefore the roughly combined table is constructed as above. I dont like it, but this is what it resolved to.'
+/
+COMMENT ON COLUMN MATERIALS.MATERIAL_USE_NO IS 'An automatically generated primary key. This allows for duplicate values in media and cell type .'
+/
+COMMENT ON COLUMN MATERIALS.PROD_LOT_NO IS 'production lot number for foreign key.'
+/
+COMMENT ON COLUMN MATERIALS.MANUFACTURER IS 'material manufacturer if different from supplier.'
+/
+COMMENT ON COLUMN MATERIALS.MANUFACTURER_CODE IS 'The identification code assigned to a product by its manufacturer.'
+/
+COMMENT ON COLUMN MATERIALS.SUPPLIER_NAME IS 'name of the supplier of this material, for foreign key.'
+/	
+COMMENT ON COLUMN MATERIALS.MATERIAL_NAME IS 'The specific name of the material to be used.'
+/
+COMMENT ON COLUMN MATERIALS.MATERIAL_TYPE IS 'Cell, media, or supplement.'
+/
+COMMENT ON COLUMN MATERIALS.GMP_QUALIFIED IS 'Indicates whether or not a material is qualified for GMP (yes, no, unknown).'
+/
+COMMENT ON COLUMN MATERIALS.NAO IS 'Indicates whether or not a material is animal origin or from non-animal source (yes, no, or unknown).'
+/
+COMMENT ON COLUMN MATERIALS.CLIENT_PROVIDED IS 'Indicates if the material is specifically provided by the client.'
+/
+COMMENT ON COLUMN MATERIALS.RECIPE IS 'Contains the recipe for specific media or supplement formulation or use.'
+/
+COMMENT ON COLUMN MATERIALS.RESEARCH_CELL_BANK IS 'Reference number of the specific research cell bank used, if applicable.'
+/
+REM ******************************************************************
+REM   Section 1.f
+PROMPT Creating Table 'SUPPLIERS'
+CREATE TABLE SUPPLIERS
+ (SUPPLIER_NAME VARCHAR2(50) NOT NULL
+ ,SUPPLIER_EMAIL VARCHAR2(100)
+,SUPPLIER_PHONE VARCHAR2(20)
+ ,SUPPLY_INFORMATION VARCHAR(500)
+,SALES_REP  VARCHAR2(100)
+)
+/
+COMMENT ON TABLE SUPPLIERS IS 'Information for an suppliers of particular materials.'
+/
+COMMENT ON COLUMN SUPPLIERS.SUPPLIER_NAME IS 'The individual supplier of the material.'
+/
+COMMENT ON COLUMN SUPPLIERS. SUPPLIER_EMAIL  IS 'The email contact information of the supplier.'
+/
+COMMENT ON COLUMN SUPPLIERS.SUPPLIER_PHONE IS 'The contact phone number for the supplier.'
+/
+COMMENT ON COLUMN SUPPLIERS. SUPPLY_INFORMATION IS 'Specific information about the supplier including opinions on quality etc.'
+/
+COMMENT ON COLUMN SUPPLIERS.SALES_REP IS 'The name of the sales rep in charge of our account.'
+/
+REM   Section 1 end
+REM ******************************************************************
+REM ******************************************************************
+REM   Section 2
+REM   Create foreign key indexes
+--  sbarclay.ind
+
+PROMPT Creating Index 'CLIENT_ID_FK_I'
+CREATE INDEX CLIENT_ID_FK_I ON PROJECT (CLIENT_ID)
+/
+
+PROMPT Creating Index 'CONTRACT_NO_FK_I'
+CREATE INDEX CONTRACT_NO_FK_I ON PRODUCT (CONTRACT_NO)
+/
+
+PROMPT Creating Index 'PRODUCT_ID_FK_I'
+CREATE INDEX PRODUCT_ID_FK_I ON PRODUCTION_LOT (PRODUCT_ID)
+/
+
+PROMPT Creating Index 'PROD_LOT_NO_FK_I'
+CREATE INDEX PROD_LOT_NO_FK_I ON MATERIALS (PROD_LOT_NO)
+/
+
+PROMPT Creating Index SUPPLIER_NAME_FK_I'
+CREATE INDEX SUPPLIER_NAME_FK_I ON MATERIALS (SUPPLIER_NAME)
+/
+REM   Section 2 end
+
+REM ******************************************************************
+REM ******************************************************************
+REM   Section 3
+REM   Create trigger for material use number
+REM   generates the primary key for table MATERIALS
+PROMPT Creating Sequence 'MATERIAL_USE_SEQ'
+CREATE SEQUENCE MATERIAL_USE_SEQ
+ INCREMENT BY 1
+ START WITH 1
+ NOMAXVALUE
+ MINVALUE 1
+ NOCYCLE
+ NOCACHE
+/
+CREATE OR REPLACE TRIGGER mat_use_no_trg_bir
+BEFORE INSERT ON materials
+FOR EACH ROW
+BEGIN
+IF :new.MATERIAL_USE_NO IS NULL THEN
+	SELECT material_use_seq.NEXTVAL
+		INTO :new.MATERIAL_USE_NO
+		FROM DUAL;
+END IF;
+END;
+/
+REM ******************************************************************
+REM ******************************************************************
+REM   Section 4
+REM   Insert values into tables
+REM ******************************************************************
+REM   Section 4.a
+PROMPT  inserting values into Client table
+ALTER SESSION SET NLS_DATE_FORMAT = 'DD-MON-RR';
+SET DEFINE OFF
+
+INSERT INTO client VALUES (19960410,'Johnson & Johnson','Protein Sciences',' One Johnson & Johnson Plaza NEW BRUNSWICK NJ', '08933', '732-524-0400');   
+INSERT INTO client VALUES (19960411,'Pfizer','Viral Labs','20 Eastern Ave Beaumont TX ', '71904', '619-831-9090');   
+INSERT INTO client VALUES (19960412,'GlaxoSmithKline', 'NA','555 SuperFun Dr Nowhere NV ','33393', '903-293-5567');   
+INSERT INTO client VALUES (19960413,'Novartis','West Point','13 Bad Luck Lane Philadelphia PA ', '21343', '210-756-0410');   
+INSERT INTO client VALUES (19960414,'AstraZeneca','PreClinical Group','777 Too Bad So Sad Circle Albuquerque NM', '98787', '657-598-1114');   
+INSERT INTO client VALUES (19960415,'Merck & Co','Texas Group','21104 Sam Houston Ln Austin TX', '71898', '940-444-7889');   
+INSERT INTO client VALUES (19960421,'Merck & Co','New England Group','32 Bad Accent Block Boston MA', '00302', '209-465-7191');   
+INSERT INTO client VALUES (19960416,'Eli Lilly','Process Development',' 5909 One Day Dr Someplace IN', '66565', '700-784-9890');   
+INSERT INTO client VALUES (19960417,'Bristol-Myers Squibb','NA',' 2127 Bad Day Dr Minneapolis MN', '90302', '800-214-0499');   
+COMMIT;
+REM ******************************************************************
+REM   Section 4.b
+PROMPT  inserting values into project table
+
+INSERT INTO project VALUES (2013293,19960410,'R Montmorency',0,11 ,'Protein expression in Pichia pastoris', TO_DATE('20-FEB-2013','DD-MON-YYYY '), TO_DATE('13-MAR-2013','DD-MON-YYYY ')); 
+INSERT INTO project VALUES (2013294,19960411,'L Valliere',0,30,'PCR', TO_DATE('30-JAN-2013','DD-MON-YYYY '), TO_DATE('14-FEB-2013','DD-MON-YYYY ')); 
+INSERT INTO project VALUES (2013295,19960412,'R Montmorency',0,22,'Process development of downstream purification ', TO_DATE('18-MAR-2013','DD-MON-YYYY '), TO_DATE('18-JAN-2014','DD-MON-YYYY ')); 
+INSERT INTO project VALUES (2013296,19960413,'Domo kun ',1546,11,'GMP protein production', TO_DATE('30-JUN-2013','DD-MON-YYYY '), TO_DATE('12-JUL-2015','DD-MON-YYYY ')); 
+INSERT INTO project VALUES (2013297,19960414,'I Kurosaki',0,42,'Bacteriophage production in salmonella', TO_DATE('22-JUL-2013','DD-MON-YYYY '), TO_DATE('12-AUG-2013','DD-MON-YYYY ')); 
+INSERT INTO project VALUES (2013298,19960415,'Domo kun ',0,12,'Process development of protein production in pseudomonas', TO_DATE('04-JUN-2014','DD-MON-YYYY '), TO_DATE('04-JUN-2015','DD-MON-YYYY ')); 
+INSERT INTO project VALUES (2013299,19960416,'L Valliere',9090,11,'GMP protein production', TO_DATE('17-SEP-2013','DD-MON-YYYY '), TO_DATE('30-SEP-2015','DD-MON-YYYY ')); 
+INSERT INTO project VALUES (2013230,19960417,'R Montmorency',0,21 ,'Downstream purification', TO_DATE('4-JAN-2014','DD-MON-YYYY '), TO_DATE('30-JAN-2014','DD-MON-YYYY ')); 
+INSERT INTO project VALUES (2013231,19960421,'L Heartfilia',0,99,'plasmid prep ', TO_DATE('20-OCT-2013','DD-MON-YYYY '), TO_DATE('31-OCT-2013','DD-MON-YYYY ')); 
+INSERT INTO project VALUES (2013232,1990421,'Z Roronoa ',0,41,'Production of bacteriophage in Ecoli', TO_DATE('11-NOV-2013','DD-MON-YYYY '), TO_DATE('31-DEC-2013','DD-MON-YYYY ')); 
+INSERT INTO project VALUES (2013233,1990415,'R Kuchiki',0,30,'Mass Spec analysis', TO_DATE('30-JUL-2013','DD-MON-YYYY '), TO_DATE('07-SEP-2013','DD-MON-YYYY ')); 
+INSERT INTO project VALUES (2013234,1990413,'Domo kun ',0,11,'protein expression in Ecoli', TO_DATE('08-SEP-2013','DD-MON-YYYY '), TO_DATE('30-SEP-2013','DD-MON-YYYY ')); 
+INSERT INTO project VALUES (2013235,1990415,'R Kuchiki ',0,10,'Staph aureus growth only', TO_DATE('07-MAR-2013','DD-MON-YYYY '), TO_DATE('14-MAR-2013','DD-MON-YYYY ')); 
+INSERT INTO project VALUES (2013236,1990411,'MD Luffy',0,11 ,'protein expression in CHO ', TO_DATE('19-APR-2013','DD-MON-YYYY '), TO_DATE('1-JUL-2013','DD-MON-YYYY ')); 
+INSERT INTO project VALUES (2013237,1990421,'L Heartfilia',8756,11,'GMP protein production', TO_DATE('01-JAN-2013','DD-MON-YYYY '), TO_DATE('22-DEC-2014','DD-MON-YYYY ')); 
+INSERT INTO project VALUES (2013238,1990410,'L Valliere ',0,11,'LPS production in Vibrio sp', TO_DATE('03-OCT-2013','DD-MON-YYYY '), TO_DATE('30-JAN-2014','DD-MON-YYYY ')); 
+INSERT INTO project VALUES (2013239,1990412,'R Kuchiki',0,11,'Production of tetanus toxin', TO_DATE('02-MAY-2013','DD-MON-YYYY '), TO_DATE('30-JUN-2013','DD-MON-YYYY ')); 
+INSERT INTO project VALUES (2013400,1990421,'E Titania',0,11,'Production of p233465', TO_DATE('02-MAY-2013','DD-MON-YYYY '), TO_DATE('30-JUN-2013','DD-MON-YYYY ')); 
+INSERT INTO project VALUES (2013401,1990421,'E Titania',0,11,'Production of p233499', TO_DATE('30-JUN-2013','DD-MON-YYYY '), TO_DATE('30-JUL-2013','DD-MON-YYYY ')); 
+INSERT INTO project VALUES (2013402,1990421,'E Titania',0,11,'Production of p233408', TO_DATE('30-JUL-2013','DD-MON-YYYY '), TO_DATE('30-AUG-2013','DD-MON-YYYY ')); 
+INSERT INTO project VALUES (2013403,1990421,'E Titania',0,11,'Production of p233456', TO_DATE('30-AUG-2013','DD-MON-YYYY '), TO_DATE('30-SEP-2013','DD-MON-YYYY ')); 
+INSERT INTO project VALUES (2013404,1990421,'E Titania',0,11,'Production of p233412', TO_DATE('30-SEP-2013','DD-MON-YYYY '), TO_DATE('30-OCT-2013','DD-MON-YYYY ')); 
+
+COMMIT;
+REM ******************************************************************
+REM   Section 4.c
+
+PROMPT  inserting values into product table
+INSERT INTO product VALUES (87560011,2013237,'E.coli BLR','Superbroth',NULL, 'IPTG-induced 30kDa protein');
+INSERT INTO product VALUES (15460011,2013296,'E.coli BLR','LB',NULL, 'IPTG-induced 57kDa protein');
+INSERT INTO product VALUES (90900011,2013299,'E.coli BLR','TB',NULL, 'IPTG-induced 150kDa protein');
+
+INSERT INTO product VALUES (11111111,2013293,'Pichia pastoris','CDM', '6xHis', NULL);
+INSERT INTO product VALUES (11111112,2013294,NULL,NULL,NULL, 'PCR dna amplification');
+INSERT INTO product VALUES (11111113,2013231,'E.coli BL21 DE3','LB', NULL, 'Miniprep of plasmid WT1398');
+INSERT INTO product VALUES (20132301,2013230,'E.coli BL21 DE3 Star',NULL, NULL, '90kDa protein');
+INSERT INTO product VALUES (20132991,2013299,'E.coli BLR','TB', 'NA', 'IPTG-induced 150kDa protein');
+INSERT INTO product VALUES (11111116,2013235,'Staphlococcus aureus','TB',NULL, 'Gowth only');
+INSERT INTO product VALUES (11111117,2013234,'E.coli BL31 DE3 pLysS','CDM', '6xHis', 'IPTG-induced 18kDa protein');
+INSERT INTO product VALUES (11111118,2013232,'E.coli BL21 DE3','LB', 'NA', 'bacteriophage MT322555');
+INSERT INTO product VALUES (11111119,2013297,'Salmonella','CDM',NULL, '100kDa secreted protein');
+INSERT INTO product VALUES (11111120,2013238,'Vibrio cholerae','CDM',NULL, 'Lipopolysaccharide production');
+INSERT INTO product VALUES (11111121,2013239,'Clostridium tetani','CDM',NULL, '25kDa protein');
+INSERT INTO product VALUES (11111122,2013295,'E.coli',NULL,NULL, '50kDa protein');
+INSERT INTO product VALUES (11111123,2013236,'CHO','Serum-free media', 'FLAG', '33kDa protein');
+INSERT INTO product VALUES (11111124,2013236,'CHO','Serum-free media', 'FLAG', '67kDa protein');
+INSERT INTO product VALUES (11111125,2013298,'Pseudomonas fluorescens',NULL, '6xHis', '67kDa protein');
+INSERT INTO product VALUES (11111126,2013298, 'Pseudomonas fluorescens',NULL, 'GST', '67kDa protein');
+INSERT INTO product VALUES (20144001,2013400,'E.coli Bl21 DE3', '4xLB', 'Tau', 'p233465 is a 65kDa tau protein');
+INSERT INTO product VALUES (20134011,2013401,'E.coli Bl21 DE3', 'LB', ' Tau', 'p233499 is a 99kDa tau protein');
+INSERT INTO product VALUES (20134021,2013402,'E.coli Bl21 DE3', '4xLB', ' Tau', 'p233408 is a 108kDa tau protein');
+INSERT INTO product VALUES (20134031,2013403,'E.coli Bl21 DE3', 'LB', ' Tau ', 'p233456 is a 56kDa tau protein');
+INSERT INTO product VALUES (20132041,2013404,'E.coli BLR', '4xLB', ' Tau ', 'p233412 is a 12kDa tau protein');
+
+COMMIT;
+REM ******************************************************************
+REM   Section 4.d
+PROMPT inserting values into production lot table
+INSERT INTO production_lot VALUES ('01-13-101',87560011,NULL,TO_DATE('10-JUN-2013','DD-MON-YYYY'),TO_DATE('15-JUN-2013','DD-MON-YYYY'),1); 
+INSERT INTO production_lot VALUES ('01-13-102',87560011,NULL,TO_DATE('28-AUG-2013','DD-MON-YYYY'),TO_DATE('02-SEP-2013','DD-MON-YYYY'),1); 
+INSERT INTO production_lot VALUES ('01-13-103',15460011,NULL,TO_DATE('14-OCT-2013','DD-MON-YYYY'),TO_DATE('29-OCT-2013','DD-MON-YYYY'),1); 
+INSERT INTO production_lot VALUES ('01-13-104',11111111,NULL,TO_DATE('28-FEB-2013','DD-MON-YYYY'),TO_DATE('9-MAR-2013','DD-MON-YYYY'),0); 
+INSERT INTO production_lot VALUES ('03-13-101',11111112,NULL,TO_DATE('02-FEB-2013','DD-MON-YYYY'),TO_DATE('04-FEB-2013','DD-MON-YYYY'),0); 
+INSERT INTO production_lot VALUES ('01-13-105',11111113,NULL,TO_DATE('22-OCT-2013','DD-MON-YYYY'),TO_DATE('24-OCT-2013','DD-MON-YYYY'),0); 
+INSERT INTO production_lot VALUES ('01-13-106',11111116,NULL,TO_DATE('10-MAR-2013','DD-MON-YYYY'),TO_DATE('12-MAR-2013','DD-MON-YYYY'),0); 
+INSERT INTO production_lot VALUES ('01-13-107',11111117,NULL,TO_DATE('13-SEP-2013','DD-MON-YYYY'),TO_DATE('22-SEP-2013','DD-MON-YYYY'),0); 
+INSERT INTO production_lot VALUES ('01-13-108',11111119,NULL,TO_DATE('25-JUL-2013','DD-MON-YYYY'),TO_DATE('05-JUL-2013','DD-MON-YYYY'),0); 
+INSERT INTO production_lot VALUES ('01-13-109',11111120,NULL,TO_DATE('01-NOV-2013','DD-MON-YYYY'),TO_DATE('07-NOV-2013','DD-MON-YYYY'),0); 
+INSERT INTO production_lot VALUES ('01-13-110',11111121,NULL,TO_DATE('11-MAY-2013','DD-MON-YYYY'),TO_DATE('17-MAY-2013','DD-MON-YYYY'),0); 
+INSERT INTO production_lot VALUES ('01-13-111',11111122, '15L fed batch in superbroth',TO_DATE('06-MAY-2013','DD-MON-YYYY'),TO_DATE('08-MAY-2013','DD-MON-YYYY'),0); 
+INSERT INTO production_lot VALUES ('01-13-112', 11111122,'15L fed batch in NAO-superbroth',TO_DATE('15-MAY-2013','DD-MON-YYYY'),TO_DATE('17-MAY-2013','DD-MON-YYYY'),1);  
+INSERT INTO production_lot VALUES ('01-13-113', 11111122, '50L fed batch in NAO-superbroth',TO_DATE('01-JUN-2013','DD-MON-YYYY'),TO_DATE('05-JUN-2013','DD-MON-YYYY'),1);
+INSERT INTO production_lot VALUES ('01-13-114',11111122, '15L fed batch in TB',TO_DATE('16-JUN-2013','DD-MON-YYYY'),TO_DATE('17-JUN-2013','DD-MON-YYYY'),0); 
+INSERT INTO production_lot VALUES ('01-13-115', 11111122,'15L fed batch in NAO-TB',TO_DATE('20-JUL-2013','DD-MON-YYYY'),TO_DATE('27-JULY-2013','DD-MON-YYYY'),1);  
+INSERT INTO production_lot VALUES ('01-13-116', 11111122, '50L fed batch in NAO-TB',TO_DATE('09-AUG-2013','DD-MON-YYYY'),TO_DATE('12-AUG-2013','DD-MON-YYYY'),1);
+INSERT INTO production_lot VALUES ('01-13-117',11111123,NULL,TO_DATE('27-APR-2013','DD-MON-YYYY'),TO_DATE('06-MAY-2013','DD-MON-YYYY'),0); 
+INSERT INTO production_lot VALUES ('01-13-118',11111124,NULL,TO_DATE('15-JUN-2013','DD-MON-YYYY'),TO_DATE('27-JUN-2013','DD-MON-YYYY'),0); 
+INSERT INTO production_lot VALUES ('01-13-119',21134001,NULL,TO_DATE('15-MAY-2013','DD-MON-YYYY'),TO_DATE('20-MAY-2013','DD-MON-YYYY'),0); 
+INSERT INTO production_lot VALUES ('01-13-120', 21134011,NULL,TO_DATE('02-JUL-2013','DD-MON-YYYY'),TO_DATE('13-JUL-2013','DD-MON-YYYY'),0); 
+INSERT INTO production_lot VALUES ('01-13-121', 21134021,NULL,TO_DATE('21-AUG-2013','DD-MON-YYYY'),TO_DATE('26-AUG-2013','DD-MON-YYYY'),0); 
+INSERT INTO production_lot VALUES ('01-13-122', 21134031,NULL,TO_DATE('09-SEP-2013','DD-MON-YYYY'),TO_DATE('17-SEP-2013','DD-MON-YYYY'),0); 
+INSERT INTO production_lot VALUES ('01-13-123', 21134041,NULL,TO_DATE('18-OCT-2013','DD-MON-YYYY'),TO_DATE('21-OCT-2013','DD-MON-YYYY'),0); 
+
+
+COMMIT;
+REM ******************************************************************
+REM   Section 4.e
+PROMPT inserting values into materials table
+
+INSERT INTO materials VALUES (material_use_seq.NEXTVAL,'Superbroth','01-13-101','TEKNOVA','S0115','VWR','media','YES', 'YES', NULL,NULL,NULL);  
+INSERT INTO materials VALUES (material_use_seq.NEXTVAL ,'Superbroth','01-13-102','SIGMA','C2309','VWR','media','YES', 'YES', NULL,NULL,NULL);  
+INSERT INTO materials VALUES (material_use_seq.NEXTVAL ,'LB','01-13-103','TEKNOVA','L3432','VWR','media','YES', 'YES', NULL,NULL,NULL);  
+INSERT INTO materials VALUES (material_use_seq.NEXTVAL ,'SUPERBROTH','01-13-111','TEKNOVA','S0110','VWR','media',NULL, NULL, NULL,NULL,NULL);  
+INSERT INTO materials VALUES (material_use_seq.NEXTVAL ,'Superbroth','01-13-113','TEKNOVA','S0115','VWR','media','YES', 'YES', NULL,NULL,NULL);  
+INSERT INTO materials VALUES (material_use_seq.NEXTVAL ,'Superbroth','01-13-112','TEKNOVA','S0115','TEKNOVA','media','YES', 'YES', NULL,NULL,NULL);  
+INSERT INTO materials VALUES (material_use_seq.NEXTVAL ,'TB','01-13-114','Sigma','TB9901','Sigma','media',NULL,NULL, NULL,NULL,NULL);  
+INSERT INTO materials VALUES (material_use_seq.NEXTVAL ,'TB','01-13-115','JTBAKER','TB9003','VWR','media', 'YES', 'YES', NULL,NULL,NULL);  
+INSERT INTO materials VALUES (material_use_seq.NEXTVAL ,'TB','01-13-116','JTBAKER','TB9003','VWR','media', 'YES', 'YES', NULL,NULL,NULL);  
+INSERT INTO materials VALUES (material_use_seq.NEXTVAL ,'LB','01-13-119','JTBAKER','LB9003','JT BAKER','media', 'YES', 'YES', NULL,NULL,NULL);  
+INSERT INTO materials VALUES (material_use_seq.NEXTVAL ,'LB','01-13-120','JTBAKER','LB9003','JT BAKER','media', 'YES', 'YES', NULL,NULL,NULL);  
+INSERT INTO materials VALUES (material_use_seq.NEXTVAL ,'LB','01-13-121','JTBAKER','LB9003','JT BAKER','media', 'YES', 'YES', NULL,NULL,NULL);  
+INSERT INTO materials VALUES (material_use_seq.NEXTVAL ,'LB','01-13-122','JTBAKER','LB9003','JT BAKER','media', 'YES', 'YES', NULL,NULL,NULL);  
+INSERT INTO materials VALUES (material_use_seq.NEXTVAL ,'LB','01-13-123','JTBAKER','LB9003','JT BAKER','media', 'YES', 'YES', NULL,NULL,NULL);  
+INSERT INTO materials VALUES (material_use_seq.NEXTVAL ,' Tau antibody','01-13-119','EMD','TAU90103', 'CLIENT','primary antibody', 'YES', 'YES', 'YES',NULL,NULL);  
+INSERT INTO materials VALUES (material_use_seq.NEXTVAL ,' Tau antibody','01-13-120','EMD','TAU90103', 'CLIENT','primary antibody', 'YES', 'YES', 'YES',NULL,NULL);  
+INSERT INTO materials VALUES (material_use_seq.NEXTVAL ,' Tau antibody ','01-13-121','EMD','TAU90103', 'CLIENT','primary antibody', 'YES', 'YES', 'YES',NULL,NULL);  
+INSERT INTO materials VALUES (material_use_seq.NEXTVAL ,' Tau antibody ','01-13-122','EMD','TAU90103', 'CLIENT','primary antibody', 'YES', 'YES', 'YES',NULL,NULL);  
+INSERT INTO materials VALUES (material_use_seq.NEXTVAL ,' Tau antibody ','01-13-123','EMD','TAU90103', 'CLIENT','primary antibody', 'YES', 'YES', 'YES',NULL,NULL);  
+INSERT INTO materials VALUES (material_use_seq.NEXTVAL ,' E.coli BL21 DE3 ','01-13-122','BD','EC03', 'BD','host cell', NULL, 'YES',NULL,NULL,NULL);  
+INSERT INTO materials VALUES (material_use_seq.NEXTVAL ,' E.coli BL21 DE3 ','01-13-121','BD','EC03', 'BD','host cell', NULL, 'YES',NULL,NULL,NULL);  
+INSERT INTO materials VALUES (material_use_seq.NEXTVAL ,' E.coli BL21 DE3 ','01-13-120','BD','EC03', 'BD','host cell', NULL, 'YES',NULL,NULL,NULL);  
+INSERT INTO materials VALUES (material_use_seq.NEXTVAL ,' E.coli BL21 DE3 ','01-13-119','BD','EC03', 'BD','host cell', NULL, 'YES',NULL,NULL,NULL);  
+INSERT INTO materials VALUES (material_use_seq.NEXTVAL ,' E.coli BLR ','01-13-123','Macron','EC03', 'Macron','host cell', 'YES', 'YES',NULL,NULL,NULL);  
+
+
+COMMIT;
+REM ******************************************************************
+REM   Section 4.f
+PROMPT inserting values into suppliers table
+REM   Note that not all established suppliers have current projects
+INSERT INTO suppliers VALUES ('VWR','infovwr@vwr.com','800-234-9990', 'Difficult to get quotes but good prices', 'Virginia Price'); 
+INSERT INTO suppliers VALUES ('Sigma','infosigma@sigmaaldrich.com','800-266-3454', 'quality media components', 'Katherine Webster'); 
+INSERT INTO suppliers VALUES ('Teknova','contactus@teknova.com','800-432-9765', 'Many NAO products', 'Bill Maelstrom'); 
+INSERT INTO suppliers VALUES ('JT Baker','bakerbums@jtbakes.com','800-090-8875',NULL, 'Bill Nye'); 
+INSERT INTO suppliers VALUES ('Macron','contact@macronchemicals.com','410-888-7777',NULL, 'Flash Gordon'); 
+INSERT INTO suppliers VALUES ('Mallinkrodt','mallinkrodt@mallink.us.com','888-444-9999',NULL, 'Hulk Smash'); 
+INSERT INTO suppliers VALUES ('BD','orders@bd.com','897-1312-5564',NULL, 'Doctor Bob');
+INSERT INTO suppliers VALUES ('EMD','medsci@emd.com','312-878-2545', 'medical research grade chemicals', 'Richard B Riddick'); 
+INSERT INTO suppliers VALUES ('Spectrum','orders@spectrum.net','222-333-9898', NULL, 'Shihoin Yoroichi'); 
+
+
+
+COMMIT;
+REM ******************************************************************
+REM ******************************************************************
+REM   Section 5
+REM   Create primary keys for all tables
+PROMPT Creating Primary Key on 'CLIENT'
+ALTER TABLE CLIENT
+ ADD CONSTRAINT CLIENT_PK PRIMARY KEY 
+  (CLIENT_ID)
+/
+PROMPT Creating Primary Key on 'PROJECT'
+ALTER TABLE PROJECT
+ ADD CONSTRAINT PROJECT_PK PRIMARY KEY 
+  (CONTRACT_NO)
+/
+PROMPT Creating Primary Key on 'PRODUCT'
+ALTER TABLE PRODUCT
+ ADD CONSTRAINT PRODUCT_PK PRIMARY KEY 
+  (PRODUCT_ID)
+/
+PROMPT Creating Primary Key on 'PRODUCTION_LOT'
+ALTER TABLE PRODUCTION_LOT
+ ADD CONSTRAINT PROD_LOT_PK PRIMARY KEY 
+  (PROD_LOT_NO)
+/
+PROMPT Creating Primary Key on 'MATERIALS'
+ALTER TABLE MATERIALS
+ ADD CONSTRAINT MATERIALS_PK PRIMARY KEY 
+  (MATERIAL_USE_NO)
+/
+PROMPT Creating Primary Key on 'SUPPLIERS'
+ALTER TABLE SUPPLIERS
+ ADD CONSTRAINT SUPPLIERS_PK PRIMARY KEY 
+  (SUPPLIER_NAME)
+/
+
+
+REM ******************************************************************
+REM ******************************************************************
+REM   Section 6
+REM   Check that tables were created.
+SELECT * FROM USER_TABLES;
+REM   Check that objects exist.
+SELECT * FROM USER_OBJECTS;
+REM******************************************************************
+REM   Section 7
+REM   Create Views
+REM   View created for client contact information
+CREATE OR REPLACE VIEW client_contact AS
+SELECT c.client_name, c.client_group, c.phone
+FROM client c;
+REM   View created for supplier information summary
+CREATE OR REPLACE VIEW supplier_summary AS
+SELECT s.supplier_name, s.supplier_phone, s.supplier_email, s.sales_rep
+FROM suppliers s;
+
+REM*****************************************************************
+REM*****************************************************************
+REM   Section 9
+REM   Select statements
+REM*****************************************************************
+REM    Name: Statement 1
+REM    Purpose: Select all columns and all rows in a single table 
+REM    
+SELECT *
+FROM client;
+REM    end statement 1
+REM*****************************************************************
+REM     Name: Statement 2
+REM     Purpose: Select 5 columns and all rows from one table
+REM     
+SELECT material_name, manufacturer, nao, gmp_qualified, client_provided
+FROM materials;
+REM    end statement 2
+REM*****************************************************************
+REM     Name: Statement 3
+REM     Purpose: join two tables, select all columns and all rows
+REM     
+SELECT c.*, p.*
+FROM client c, project p
+WHERE c.client_id = p.client_id;
+REM    end statement 3
+REM*****************************************************************
+REM     Name: Statement 4
+REM     Purpose: Select and order data from one table
+REM     
+SELECT *
+FROM project p
+ORDER BY p.project_manager;
+REM    end statement 4
+REM*****************************************************************
+REM     Name: Statement 5
+REM     Purpose: join three tables, select five columns and 10 rows
+REM     
+SELECT r.product_id, r.product_description, l.prod_lot_no, m.material_use_no, m.material_name
+FROM product r, production_lot l, materials m
+WHERE r.product_id = l.product_id
+AND   l.prod_lot_no = m.prod_lot_no
+AND   m.material_use_no <= 10;
+REM    end statement 5
+REM*****************************************************************
+REM     Name: Statement 6
+REM     Purpose: select distinct rows using joins on 3 tables 
+REM     
+SELECT DISTINCT c.client_name, c.client_id, p.contract_no, p.project_manager, r.product_id, r.cell_type
+FROM client c, project p, product r
+WHERE c.client_id = p.client_id
+AND   p.contract_no = r.contract_no; 
+REM    end statement 6
+REM*****************************************************************
+REM     Name: Statement 7
+REM     Purpose: select all columns and ten rows from 2 joined tables 
+REM     
+SELECT m.*, s.*
+FROM materials m, suppliers s
+WHERE m.supplier_name = s.supplier_name
+AND   m.material_use_no <=10;
+REM    end statement 7
+REM*****************************************************************
+REM     Name: Statement 8
+REM     Purpose: use group by and having 
+REM     
+SELECT product_id, prod_lot_no, prod_info
+FROM production_lot
+GROUP BY product_id, prod_lot_no, prod_info
+HAVING (COUNT(prod_info) =1);
+REM    end statement 8
+REM*****************************************************************
+REM    Name: Statement 9
+REM    Purpose: Use IN clause 
+REM    
+SELECT prod_lot_no
+FROM production_lot
+WHERE product_id IN 
+(SELECT product_id 
+FROM product
+WHERE antibody_tags IS NOT NULL);
+REM    end statement 9
+REM*****************************************************************
+REM    Name: Statement 10
+REM    Purpose: Use length function on a column from a table 
+REM    
+SELECT LENGTH (street_address)
+FROM client;
+REM    end statement 10
+REM*****************************************************************
+REM    Name: Statement 11
+REM    Purpose: Use column alias
+SELECT supplier_name "Supplier",
+       sales_rep "Contact for sales questions",
+       supplier_phone "Phone number"
+FROM suppliers;
+REM    end statement 11
+REM*****************************************************************
+REM    Name: Statement 12
+REM    Purpose: To return projects that have not entered production
+SELECT p.product_id
+FROM product p
+WHERE product_id NOT IN
+(SELECT product_id
+	FROM production_lot);
+REM     end statement 12
+REM*****************************************************************
+REM    Name: Statement 13
+REM    Purpose: Perform an aggregate query
+SELECT MIN(product_id), MAX(product_id)
+FROM production_lot; 
+REM    end of statement 13
+REM*****************************************************************
+REM    Name: Statement 14
+REM    Purpose: Update Data and demonstrate that it updated
+UPDATE suppliers
+SET sales_rep = 'Jean-Luc Picard'
+WHERE sales_rep = 'Flash Gordon';
+SELECT *
+FROM suppliers;
+REM    end of statement 14
+REM*****************************************************************
+REM   Name: Statement 15
+REM   Purpose: to display clients and projects from companies beginning w M
+REM         
+SELECT c.client_id, c.client_name, c.client_group, p.contract_no, p.project_manager
+FROM client c, project p
+WHERE c.client_id = p.client_id
+AND c.client_name LIKE 'M%';
+REM    end statement 15
+REM*****************************************************************
+REM     Name: Statement 16
+REM     Purpose: select and display all production lot start and complete dates 
+REM      for lots associated with contract 2013295
+REM     
+SELECT p.contract_no, p.project_open_date, p.project_completion_date, r.product_id, l.prod_lot_no, l.prod_began, l.prod_completed
+FROM project p, product r, production_lot l
+WHERE p.contract_no = r.contract_no
+AND r.product_id = l.product_id 
+AND p.contract_no = 2013295;
+REM    end statement 16
+REM*****************************************************************
+REM     Name: Statement 17
+REM     Purpose: Count the number of production lots associated with a particular product
+REM
+SELECT COUNT (prod_lot_no)
+FROM production_lot
+WHERE product_id LIKE '11111122';
+REM    end statement 17
+REM*****************************************************************  
+REM    Name: Statement 18
+REM    Purpose: select and display all production lot complete dates 
+REM    after June 16, 2013
+REM     
+SELECT p.contract_no, r.product_id, r.product_description, l.prod_lot_no, l.prod_began, l.prod_completed
+FROM project p, product r, production_lot l
+WHERE p.contract_no = r.contract_no
+AND r.product_id = l.product_id 
+AND l.prod_completed >= TO_DATE('16-JUN-2013','DD-MON-YYYY');
+REM    end statement 18
+REM*****************************************************************  
+REM    Name: Statement 19
+REM    Purpose: Return three values from the suppliers table.
+REM             Values will be returned in the order the program processes
+REM             them, in this case alphabetically.
+SELECT supplier_name
+FROM suppliers
+WHERE ROWNUM <= 3;
+REM     end of statement 19  
+REM*****************************************************************  
+REM*****************************************************************  
+

@@ -1,0 +1,134 @@
+
+
+REM    Name: Statement 1
+REM    Purpose: Select all columns and all rows in a single table 
+REM    
+SELECT *
+FROM client;
+REM    end statement 1
+REM    
+REM    
+REM     Name: Statement 2
+REM     Purpose: Select 5 columns and all rows from one table
+REM     
+SELECT material_name, manufacturer, nao, gmp_qualified, client_provided
+FROM materials;
+REM    end statement 2
+REM    
+REM    
+REM     Name: Statement 3
+REM     Purpose: join two tables, select all columns and all rows
+REM     
+SELECT c.*, p.*
+FROM client c, project p
+WHERE c.client_id = p.client_id;
+REM    end statement 3
+REM    
+REM     Name: Statement 4
+REM     Purpose: Select and order data from one table
+REM     
+SELECT *
+FROM project p
+ORDER BY p.project_manager;
+REM    end statement 4
+REM  
+REM*****************************************************************
+REM     Name: Statement 6
+REM     Purpose: select distinct rows using joins on 3 tables 
+REM     
+SELECT DISTINCT c.client_name, c.client_id, p.contract_no, p.project_manager, r.product_id, r.cell_type
+FROM client c, project p, product r
+WHERE c.client_id = p.client_id
+AND   p.contract_no = r.contract_no; 
+REM    end statement 6
+
+REM    
+REM*****************************************************************
+REM     Name: Statement 7
+REM     Purpose: select all columns and ten rows from 2 joined tables 
+REM     
+SELECT m.*, s.*
+FROM materials m, suppliers s
+WHERE m.supplier_name = s.supplier_name
+AND   m.material_use_no <=10;
+REM    end statement 7
+REM*****************************************************************
+REM     Name: Statement 8
+REM     Purpose: use group by and having 
+REM     
+SELECT product_id, prod_lot_no, prod_info
+FROM production_lot
+GROUP BY product_id, prod_lot_no, prod_info
+HAVING (COUNT(prod_info) =1);
+REM    end statement 8
+REM*****************************************************************
+REM    Name: Statement 9
+REM    Purpose: Use IN clause 
+REM    
+SELECT prod_lot_no
+FROM production_lot
+WHERE product_id IN 
+(SELECT product_id 
+FROM product
+WHERE antibody_tags IS NOT NULL);
+REM    end statement 9
+REM*****************************************************************
+REM    Name: Statement 10
+REM    Purpose: Use length function on a column from a table 
+REM    
+SELECT LENGTH (street_address)
+FROM client;
+REM    end statement 10
+REM*****************************************************************
+REM    Name: Statement 11
+REM    Purpose: Use column alias
+SELECT supplier_name "Supplier",
+       sales_rep "Contact for sales questions",
+       supplier_phone "Phone number"
+FROM suppliers;
+REM    end statement 11
+REM*****************************************************************
+REM    
+REM    
+REM    Name: Statement 12
+REM    Purpose: To return projects that have not entered production
+SELECT p.product_id
+FROM product p
+WHERE product_id NOT IN
+(SELECT product_id
+	FROM production_lot);
+REM     end statement 12
+REM*****************************************************************
+REM    Name: Statement 13
+REM    Purpose: Perform an aggregate query
+SELECT MIN(product_id), MAX(product_id)
+FROM production_lot; 
+REM    end of statement 13
+REM*****************************************************************
+REM    Name: Statement 14
+REM    Purpose: Update Data and demonstrate that it updated
+UPDATE suppliers
+SET sales_rep = 'Jean-Luc Picard'
+WHERE sales_rep = 'Flash Gordon';
+SELECT *
+FROM suppliers;
+REM    end of statement 14
+REM*****************************************************************
+REM    Name: Statement 15
+REM    Purpose: 
+
+
+REM    end of statement 15
+
+REM*****************************************************************
+REM    
+REM    
+REM    Name: Statement 20
+REM    Purpose:
+REM   
+SELECT supplier_name
+FROM suppliers
+WHERE ROWNUM >= 3;
+REM     end of statement 20
+
+
